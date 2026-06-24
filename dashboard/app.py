@@ -300,7 +300,7 @@ with tab2:
         fig4.add_trace(go.Bar(x=latest["cohort"],y=latest["pct_at_risk"],name="% At Risk",
             marker_color=[COHORT_C.get(c,BLUE) for c in latest["cohort"]],opacity=0.85))
         fig4.add_trace(go.Bar(x=latest["cohort"],y=latest["pct_using_payday_loans"],name="% Payday",
-            marker_color=[COHORT_C.get(c,BLUE)+"88" for c in latest["cohort"]],opacity=0.7))
+            marker_color=[COHORT_C.get(c,BLUE) for c in latest["cohort"]],opacity=0.7))
         fig4.update_layout(**bl(300),barmode="group",yaxis_title="%")
         st.plotly_chart(fig4,use_container_width=True)
     st.markdown('<div class="sec-hdr">Score Component Radar</div>',unsafe_allow_html=True)
