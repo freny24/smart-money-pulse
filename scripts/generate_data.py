@@ -10,7 +10,7 @@ random.seed(42); np.random.seed(42)
 
 N_USERS = 500; N_TRANSACTIONS = 50000
 START_DATE = datetime(2023, 1, 1); END_DATE = datetime(2025, 1, 1)
-DB_PATH = "/home/claude/smart_money_pulse/data/smart_money.duckdb"
+DB_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../data/smart_money.duckdb")
 
 CATEGORIES = {
     "groceries":      {"merchants":["Whole Foods","Kroger","Aldi","Trader Joe's"],"avg":85,"std":35},

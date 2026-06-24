@@ -1,8 +1,9 @@
 """Smart Money Pulse — SQL Pipeline Runner"""
 import duckdb, os
 
-DB_PATH  = "/home/claude/smart_money_pulse/data/smart_money.duckdb"
-SQL_PATH = "/home/claude/smart_money_pulse/sql/analytics_pipeline.sql"
+BASE     = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DB_PATH  = os.path.join(BASE, "data/smart_money.duckdb")
+SQL_PATH = os.path.join(BASE, "sql/analytics_pipeline.sql")
 
 def run_pipeline():
     con = duckdb.connect(DB_PATH)
