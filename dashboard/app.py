@@ -3,9 +3,28 @@ Smart Money Pulse — Streamlit Dashboard
 Behavioral Finance Stress Detection Pipeline
 Author: Freny Reji | Stack: DuckDB · dbt · Airflow · Plotly
 """
+import sys, os
+
+# ── Bootstrap: generate data if DB doesn't exist ─────────────────────────────
+# Use sys.executable so we always call the SAME Python that's running this app
+# (the venv Python, not /usr/local/bin/python which may be a different version)
+DB_PATH = os.path.join(os.path.dirname(__file__), "../data/smart_money.duckdb")
+
+if not os.path.exists(DB_PATH):
+    import subprocess
+    base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    subprocess.run(
+        [sys.executable, os.path.join(base, "scripts/generate_data.py")],
+        check=True
+    )
+    subprocess.run(
+        [sys.executable, os.path.join(base, "scripts/run_pipeline.py")],
+        check=True
+    )
+
 import streamlit as st
 import duckdb, pandas as pd, plotly.graph_objects as go
-import plotly.express as px, os, sys
+import plotly.express as px
 
 st.set_page_config(page_title="Smart Money Pulse", page_icon="📊", layout="wide",
                    initial_sidebar_state="expanded")
@@ -37,15 +56,15 @@ st.markdown("""<style>
 </style>""", unsafe_allow_html=True)
 
 # ── DB connection ─────────────────────────────────────────────────────────────
-DB_PATH = os.path.join(os.path.dirname(__file__), "data/smart_money.duckdb")
-
 @st.cache_data(ttl=300)
 def q(sql):
     con = duckdb.connect(DB_PATH, read_only=True)
-    df = con.execute(sql).df(); con.close(); return df
+    df = con.execute(sql).df()
+    con.close()
+    return df
 
-# ── Load data ─────────────────────────────────────────────────────────────────
-kpi       = q("SELECT * FROM mart_kpi_summary_tbl").iloc[0]
+# ── Load all data ─────────────────────────────────────────────────────────────
+kpi = q("SELECT * FROM mart_kpi_summary_tbl").iloc[0]
 cohort_df = q("SELECT * FROM mart_cohort_health_tbl ORDER BY txn_month, cohort")
 risk_df   = q("SELECT * FROM mart_user_risk_profile_tbl ORDER BY intervention_priority DESC")
 platform_df = q("""
@@ -86,9 +105,6 @@ def blayout(height=280):
                 xaxis=dict(gridcolor=GRID,linecolor=GRID,zerolinecolor=GRID),
                 yaxis=dict(gridcolor=GRID,linecolor=GRID,zerolinecolor=GRID),
                 legend=dict(bgcolor="rgba(0,0,0,0)",font=dict(size=9)))
-
-def tip(active, payload, label):
-    return None  # Plotly handles its own tooltips
 
 # ── Header ────────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -134,8 +150,8 @@ st.markdown("<br>", unsafe_allow_html=True)
 # ── Sidebar filters ───────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("### 🎛 Filters")
-    band_filter = st.multiselect("Stress Band",["CRITICAL","HIGH","MODERATE","LOW"],
-                                 default=["CRITICAL","HIGH"])
+    band_filter   = st.multiselect("Stress Band",["CRITICAL","HIGH","MODERATE","LOW"],
+                                   default=["CRITICAL","HIGH"])
     cohort_filter = st.multiselect("Cohort", risk_df["cohort"].unique().tolist(),
                                    default=risk_df["cohort"].unique().tolist())
     top_n = st.slider("Intervention table rows",5,100,20)
@@ -150,7 +166,7 @@ with st.sidebar:
         for item in items: st.markdown(f"  · `{item}`")
     st.markdown("---")
     st.markdown("**🔑 SQL Techniques**")
-    st.markdown("· `STDDEV() OVER`\n· `LAG()` \n· `PARTITION BY`\n· Rolling windows\n· `ROWS BETWEEN N PRECEDING`")
+    st.markdown("· `STDDEV() OVER`\n· `LAG()`\n· `PARTITION BY`\n· Rolling windows\n· `ROWS BETWEEN N PRECEDING`")
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
 tab1,tab2,tab3,tab4 = st.tabs(["📈  OVERVIEW","👥  COHORTS","🔬  RISK SIGNALS","🎯  INTERVENTION"])
@@ -179,8 +195,7 @@ with tab1:
             number={"suffix":"%","font":{"color":AMBER,"size":26,"family":"Courier New"}},
             gauge={
                 "axis":{"range":[0,100],"tickcolor":TEXT,"tickfont":{"color":TEXT,"size":9}},
-                "bar":{"color":AMBER},
-                "bgcolor":BG,
+                "bar":{"color":AMBER}, "bgcolor":BG,
                 "steps":[{"range":[0,30],"color":"#0f2a1a"},{"range":[30,50],"color":"#2a1f0a"},
                          {"range":[50,70],"color":"#2a150a"},{"range":[70,100],"color":"#2a0a0a"}],
                 "threshold":{"line":{"color":RED,"width":3},"value":70}
@@ -212,7 +227,8 @@ with tab2:
             fig3.add_trace(go.Scatter(x=cdf["txn_month"],y=cdf["avg_stress"],
                 mode="lines",name=cohort,
                 line=dict(color=COHORT_C.get(cohort,BLUE),width=2)))
-        fig3.update_layout(**blayout(300)); fig3.update_yaxes(title_text="Avg Stress Score")
+        fig3.update_layout(**blayout(300))
+        fig3.update_yaxes(title_text="Avg Stress Score")
         st.plotly_chart(fig3, use_container_width=True)
 
     with c_b:
@@ -223,7 +239,8 @@ with tab2:
         fig4.add_trace(go.Bar(x=latest["cohort"],y=latest["pct_at_risk"],name="% At Risk",
             marker_color=[COHORT_C.get(c,BLUE) for c in latest["cohort"]],opacity=0.85))
         fig4.add_trace(go.Bar(x=latest["cohort"],y=latest["pct_using_payday_loans"],
-            name="% Payday Loans",marker_color=[COHORT_C.get(c,BLUE)+"88" for c in latest["cohort"]],opacity=0.7))
+            name="% Payday Loans",
+            marker_color=[COHORT_C.get(c,BLUE)+"88" for c in latest["cohort"]],opacity=0.7))
         fig4.update_layout(**blayout(300),barmode="group",yaxis_title="%")
         st.plotly_chart(fig4, use_container_width=True)
 
@@ -236,12 +253,13 @@ with tab2:
     vals = [row.spend_pressure,row.income_irregular,row.high_risk_exposure,
             row.income_shock,row.payday_dependency,row.atm_dependency,row.impulse_spend]
     fig5 = go.Figure(go.Scatterpolar(
-        r=vals+[vals[0]], theta=cats+[cats[0]],
-        fill="toself", line=dict(color=COHORT_C.get(sel,AMBER),width=2),
+        r=vals+[vals[0]], theta=cats+[cats[0]], fill="toself",
+        line=dict(color=COHORT_C.get(sel,AMBER),width=2),
         fillcolor=COHORT_C.get(sel,AMBER)+"30"))
     fig5.update_layout(
         polar=dict(bgcolor=BG,
-                   radialaxis=dict(visible=True,range=[0,1],color=TEXT,gridcolor=GRID,tickfont=dict(size=8)),
+                   radialaxis=dict(visible=True,range=[0,1],color=TEXT,
+                                   gridcolor=GRID,tickfont=dict(size=8)),
                    angularaxis=dict(color=TEXT,gridcolor=GRID)),
         paper_bgcolor=SURF,font=dict(color=TEXT,family="Courier New",size=10),
         height=360,margin=dict(l=60,r=60,t=36,b=36),showlegend=False)
@@ -295,7 +313,6 @@ monthly_income
 ROUND(income_stddev_3m
   / NULLIF(income_avg_3m, 0)
 , 4) AS income_cv""", language="sql")
-
     with c2:
         st.markdown("**Spend Velocity — Rolling Windows + Acceleration**")
         st.code("""-- 7-day rolling spend per user
@@ -332,7 +349,6 @@ with tab4:
         risk_df["cohort"].isin(cohort_filter)
     ].head(top_n)
 
-    # Scatter
     c_scatter, c_table = st.columns([1,2])
     with c_scatter:
         st.markdown('<div class="sec-hdr">Stress vs Priority</div>', unsafe_allow_html=True)
@@ -354,10 +370,8 @@ with tab4:
             "intervention_priority":"priority","spend_to_income_ratio":"spend/inc",
             "total_payday_loans":"payday","stress_persistence_rate":"persistence"})
         BAND_COLOR_MAP = {"CRITICAL":"#e74c3c","HIGH":"#e67e22","MODERATE":"#f5a623","LOW":"#27ae60"}
-
         def color_band(val):
-            c = BAND_COLOR_MAP.get(val,"white")
-            return f"color:{c};font-weight:bold"
+            return f"color:{BAND_COLOR_MAP.get(val,'white')};font-weight:bold"
         def color_score(val):
             if isinstance(val,float):
                 if val>=0.7: return "color:#e74c3c"
@@ -365,7 +379,6 @@ with tab4:
                 if val>=0.3: return "color:#f5a623"
                 return "color:#27ae60"
             return ""
-
         styled = (display.style
             .applymap(color_band, subset=["band"])
             .applymap(color_score, subset=["stress","priority"])
@@ -374,7 +387,6 @@ with tab4:
             .set_properties(**{"font-family":"Courier New","font-size":"11px"}))
         st.dataframe(styled, use_container_width=True, height=310)
 
-    # Persistence bar
     st.markdown('<div class="sec-hdr">Stress Persistence Rate by Cohort</div>',
                 unsafe_allow_html=True)
     persist = risk_df.groupby("cohort")["stress_persistence_rate"].mean().reset_index()
@@ -386,20 +398,19 @@ with tab4:
     fig8.update_layout(**blayout(240),yaxis_title="Avg Persistence Rate",yaxis_tickformat=".0%")
     st.plotly_chart(fig8, use_container_width=True)
 
-    # Pipeline Architecture
     st.markdown('<div class="sec-hdr">Pipeline Architecture</div>', unsafe_allow_html=True)
     arch_cols = st.columns(5)
-    arch = [
+    for col,(label,items,color) in zip(arch_cols,[
         ("RAW SOURCE","raw_transactions\nraw_users","#3498db"),
         ("STAGING","stg_transactions\nstg_users","#1abc9c"),
         ("INTERMEDIATE","int_income_signals\nint_stress_scores\nint_spend_velocity","#f5a623"),
         ("MARTS","mart_cohort_health\nmart_user_risk_profile\nmart_kpi_summary","#e67e22"),
         ("DASHBOARD","Streamlit\nPlotly\nMetabase-ready","#e74c3c"),
-    ]
-    for col,(label,items,color) in zip(arch_cols, arch):
+    ]):
         with col:
-            lines = "".join(f"<div style='font-family:Courier New;font-size:9px;color:#4a5068;margin-top:3px'>· {l}</div>"
-                            for l in items.split("\n"))
+            lines = "".join(
+                f"<div style='font-family:Courier New;font-size:9px;color:#4a5068;margin-top:3px'>· {l}</div>"
+                for l in items.split("\n"))
             st.markdown(f"""<div style="background:#13151f;border:1px solid {color}44;
               border-top:2px solid {color};border-radius:3px;padding:10px 12px">
               <div style="font-family:Courier New;font-size:10px;color:{color};font-weight:700">{label}</div>
