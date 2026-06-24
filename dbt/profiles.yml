@@ -1,0 +1,11 @@
+smart_money_pulse:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: ../data/smart_money.duckdb
+      threads: 4
+    prod:
+      type: duckdb
+      path: ../data/smart_money_prod.duckdb
+      threads: 8

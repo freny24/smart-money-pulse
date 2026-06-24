@@ -1,0 +1,21 @@
+version: 2
+sources:
+  - name: raw
+    schema: main
+    tables:
+      - name: raw_transactions
+        columns:
+          - name: transaction_id
+            tests: [unique, not_null]
+          - name: transaction_type
+            tests:
+              - accepted_values:
+                  values: ['debit', 'credit']
+      - name: raw_users
+        columns:
+          - name: user_id
+            tests: [unique, not_null]
+          - name: cohort
+            tests:
+              - accepted_values:
+                  values: [stable_earner, gig_worker, stressed_spender, financially_distressed, high_earner, recovering]

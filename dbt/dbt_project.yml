@@ -1,0 +1,20 @@
+name: 'smart_money_pulse'
+version: '1.0.0'
+config-version: 2
+profile: 'smart_money_pulse'
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+models:
+  smart_money_pulse:
+    staging:
+      +materialized: view
+      +schema: staging
+    intermediate:
+      +materialized: view
+      +schema: intermediate
+    marts:
+      +materialized: table
+      +schema: marts
