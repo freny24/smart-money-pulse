@@ -310,7 +310,7 @@ with tab2:
     vals=[row.spend_pressure,row.income_irregular,row.high_risk_exposure,
           row.income_shock,row.payday_dependency,row.atm_dependency,row.impulse_spend]
     fig5=go.Figure(go.Scatterpolar(r=vals+[vals[0]],theta=cats+[cats[0]],fill="toself",
-        line=dict(color=COHORT_C.get(sel,AMBER),width=2),fillcolor=COHORT_C.get(sel,AMBER)+"30"))
+        line=dict(color=COHORT_C.get(sel,AMBER),width=2),fillcolor="rgba(245,166,35,0.18)"))
     fig5.update_layout(polar=dict(bgcolor="#0f1117",
         radialaxis=dict(visible=True,range=[0,1],color=TEXT,gridcolor=GRID,tickfont=dict(size=8)),
         angularaxis=dict(color=TEXT,gridcolor=GRID)),
