@@ -393,7 +393,7 @@ with tab4:
                 if v>=0.3: return "color:#f5a623"
                 return "color:#27ae60"
             return ""
-        styled=(display.style.applymap(cb,subset=["band"]).applymap(cs2,subset=["stress","priority"])
+        styled=(display.style.map(cb,subset=["band"]).map(cs2,subset=["stress","priority"])
             .format({"stress":"{:.3f}","priority":"{:.3f}","spend/inc":"{:.2f}","persistence":"{:.1%}"})
             .set_properties(**{"font-family":"Courier New","font-size":"11px"}))
         st.dataframe(styled,use_container_width=True,height=310)
